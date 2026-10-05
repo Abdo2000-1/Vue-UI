@@ -318,19 +318,19 @@
         <table class="w-full min-w-[700px] text-left text-xs">
           <thead>
             <tr class="border-b border-slate-100 dark:border-slate-800 text-slate-400 font-bold uppercase tracking-wider">
-              <th class="py-3 px-3">Order #</th>
-              <th class="py-3 px-3">Patient</th>
-              <th class="py-3 px-3">Doctor / Clinic</th>
-              <th class="py-3 px-3">Restoration</th>
-              <th class="py-3 px-3">Status</th>
-              <th class="py-3 px-3">Priority</th>
-              <th class="py-3 px-3">Due Date</th>
+              <SortTh field="orderNumber" label="Order #" :sortField="recentSortField" :sortDirection="recentSortDirection" @sort="handleRecentSort" class="py-3 px-3" />
+              <SortTh field="patientName" label="Patient" :sortField="recentSortField" :sortDirection="recentSortDirection" @sort="handleRecentSort" class="py-3 px-3" />
+              <SortTh field="doctorName" label="Doctor / Clinic" :sortField="recentSortField" :sortDirection="recentSortDirection" @sort="handleRecentSort" class="py-3 px-3" />
+              <SortTh field="restoration" label="Restoration" :sortField="recentSortField" :sortDirection="recentSortDirection" @sort="handleRecentSort" class="py-3 px-3" />
+              <SortTh field="status" label="Status" :sortField="recentSortField" :sortDirection="recentSortDirection" @sort="handleRecentSort" class="py-3 px-3" />
+              <SortTh field="priority" label="Priority" :sortField="recentSortField" :sortDirection="recentSortDirection" @sort="handleRecentSort" class="py-3 px-3" />
+              <SortTh field="dueDate" label="Due Date" :sortField="recentSortField" :sortDirection="recentSortDirection" @sort="handleRecentSort" class="py-3 px-3" />
               <th class="py-3 px-3 text-right">Action</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 dark:divide-slate-800/60 font-medium">
             <tr
-              v-for="order in store.orders.slice(0, 5)"
+              v-for="order in recentOrders"
               :key="order.id"
               class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors"
             >
@@ -386,12 +386,42 @@ import {
 import { useDentalStore } from '@/stores/dental';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 import PriorityBadge from '@/components/ui/PriorityBadge.vue';
+import SortTh from '@/components/ui/SortTh.vue';
 import { formatCurrency, formatDate } from '@/utils/format';
 import { sound } from '@/utils/sound';
 
 const router = useRouter();
 const store = useDentalStore();
 const activeDashboardTooth = ref<number>(14);
+
+const recentSortField = ref<string>('');
+const recentSortDirection = ref<'asc' | 'desc'>('asc');
+
+function handleRecentSort(field: string) {
+  if (recentSortField.value === field) {
+    recentSortDirection.value = recentSortDirection.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    recentSortField.value = field;
+    recentSortDirection.value = 'asc';
+  }
+}
+
+const recentOrders = computed(() => {
+  const list = store.orders.slice(0, 10);
+  if (!recentSortField.value) return list.slice(0, 5);
+  const field = recentSortField.value;
+  const dirMultiplier = recentSortDirection.value === 'asc' ? 1 : -1;
+  return [...list].sort((a: any, b: any) => {
+    const valA = a[field];
+    const valB = b[field];
+    if (valA === undefined || valA === null) return 1;
+    if (valB === undefined || valB === null) return -1;
+    if (typeof valA === 'number' && typeof valB === 'number') {
+      return (valA - valB) * dirMultiplier;
+    }
+    return String(valA).localeCompare(String(valB), undefined, { numeric: true, sensitivity: 'base' }) * dirMultiplier;
+  }).slice(0, 5);
+});
 
 const TOOTH_NAMES: Record<number, string> = {
   1: 'Upper Right 3rd Molar (Wisdom)', 2: 'Upper Right 2nd Molar', 3: 'Upper Right 1st Molar',
